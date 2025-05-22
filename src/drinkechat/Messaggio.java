@@ -1,9 +1,8 @@
 package drinkechat;
 
-/**
- * Classe che rappresenta un messaggio JSON scambiato tra client e server.
- * Questa classe sostituisce il formato di comunicazione basato su stringhe.
- */
+// classe Messaggio
+// rappresenta un messaggio scambiato tra client e server.
+// contiene informazioni sul tipo di messaggio, il mittente, il contenuto e il destinatario.
 
 public class Messaggio {
 
@@ -32,7 +31,7 @@ public class Messaggio {
     private String destinatario;
     private int numeroOrdine;
 
-    // Costruttori
+    // costruttori
     public Messaggio() {
     }
 

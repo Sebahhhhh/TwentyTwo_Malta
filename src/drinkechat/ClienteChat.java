@@ -11,7 +11,7 @@ import drinkechat.Messaggio.TipoMessaggio;
 // Si occupa di ricevere e inviare messaggi, gestire gli ordini e la chat.
 
 public class ClienteChat {
-    // Parametri per la connessione al server
+    // parametri per la connessione al server
     private static final String HOST = "localhost";
     private static final int PORTA = 5000;
 
@@ -48,7 +48,7 @@ public class ClienteChat {
             threadLettura.setDaemon(true); // Termina quando il thread principale termina
             threadLettura.start();
 
-            // Gestisce l'input dell'utente nel thread principale
+            // gestisce l'input dell'utente nel thread principale
             gestisciInput();
 
         } catch (IOException e) {
@@ -328,9 +328,9 @@ public class ClienteChat {
     }
 
 
-  // Main
+  // main
     public static void main(String[] args) {
-        // Avvia il client
+        // avvia il client
         ClienteChat client = new ClienteChat();
         client.avvia();
     }

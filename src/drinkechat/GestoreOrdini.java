@@ -1,6 +1,6 @@
 package drinkechat;
 
-// Classe che gestisce gli ordini dei drink nel sistema.
+// classe che gestisce gli ordini dei drink nel sistema.
 
 public class GestoreOrdini {
 
