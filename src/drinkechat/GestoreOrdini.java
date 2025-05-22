@@ -1,29 +1,35 @@
 package drinkechat;
 
-// Classe che gestisce tutti gli ordini di drink e monitora il loro stato.
+// Classe che gestisce gli ordini dei drink nel sistema.
 
 public class GestoreOrdini {
-    // Contatore per gli ordini
+
+    // contatore per gli ordini
+    // codice identificativo
     private int contatore;
 
-    // Costruttore che inizializza il contatore degli ordini.
+    // costruttore
     public GestoreOrdini() {
-        // Inizializzazione Conta a 1
+        // inizializzazione Conta a 1
         this.contatore = 1;
     }
 
-    // Crea un nuovo ordine nel sistema e restituisce il suo identificativo numerico.
+
+      // crea un nuovo ordine nel sistema e restituisce il suo identificativo numerico.
+      // @param nomeDrink =  Il nome del drink ordinato
+      // @param nomeClient = Il nome del client che ha effettuato l'ordine
+      // @return = Il numero identificativo dell'ordine
+
     public int nuovoOrdine(String nomeDrink, String nomeClient) {
         int numeroOrdine = contatore++;
-        System.out.println("📝 Nuovo ordine registrato: #" + numeroOrdine + 
-                           " - " + nomeDrink + " per " + nomeClient);
+        System.out.println("Nuovo ordine registrato: #" + numeroOrdine +
+                " - " + nomeDrink + " per " + nomeClient);
 
-        // Restituisce il numero dell'ordine
         return numeroOrdine;
     }
 
-    // Ordine Completato
+   // segna che ha fatto l'ordine
     public void completaOrdine(int numeroOrdine) {
-        System.out.println("✅ Ordine completato: #" + numeroOrdine);
+        System.out.println("Ordine completato: #" + numeroOrdine);
     }
 }

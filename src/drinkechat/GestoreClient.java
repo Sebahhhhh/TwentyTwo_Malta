@@ -5,8 +5,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import drinkechat.Messaggio.TipoMessaggio;
 
-// Gestisce la comunicazione con un singolo client connesso al server.
+// gestoreClient gestisce la comunicazione con un singolo client.
+// si occupa di ricevere e inviare messaggi, gestire gli ordini e la chat.
+
 public class GestoreClient implements Runnable {
     private Socket socketClient;
     private ServerLocale server;
@@ -16,15 +19,16 @@ public class GestoreClient implements Runnable {
     private String nomeClient;
     private boolean attivo;
 
-    // Lista dei drink disponibili
+    // lista dei drink disponibili (li ho presi veramente dalla lista dei drink disponibili a malta)
     private static final String[] DRINK_DISPONIBILI = {
-        "Pina Colada", "Fruit Pina Colada", "Sex on The Beach", "Tequila Sunrise",
-        "Blue Lagoon", "Blue Hawaiian", "Sea Breeze", "Wet Pussy", "Death By Sex",
-        "Paloma", "Margarita", "Mojito", "Fruit Mojito", "Tom Collins", "Hangover",
-        "Cosmopolitan", "Hurricane", "Long Island Iced Tea", "Adios Motherfucker",
-        "Rocket Fuel", "Daiquiri", "Strawberry Mango"
+            "Pina Colada", "Fruit Pina Colada", "Sex on The Beach", "Tequila Sunrise",
+            "Blue Lagoon", "Blue Hawaiian", "Sea Breeze", "Wet Pussy", "Death By Sex",
+            "Paloma", "Margarita", "Mojito", "Fruit Mojito", "Tom Collins", "Hangover",
+            "Cosmopolitan", "Hurricane", "Long Island Iced Tea", "Adios Motherfucker",
+            "Rocket Fuel", "Daiquiri", "Strawberry Mango"
     };
 
+   // costruttore del gestore client
     public GestoreClient(Socket socketClient, ServerLocale server, GestoreOrdini gestoreOrdini) {
         this.socketClient = socketClient;
         this.server = server;
@@ -32,105 +36,114 @@ public class GestoreClient implements Runnable {
         this.attivo = true;
 
         try {
-            // Inizializza gli stream di input e output
+            // inizializza gli stream di input e output
+            // bufferedReader per la lettura dei messaggi dal client
+            // printWriter per l'invio dei messaggi al client
+
             this.lettore = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
             this.scrittore = new PrintWriter(socketClient.getOutputStream(), true);
 
-            // Richiede il nome utente al client
-            inviaMessaggio("BENVENUTO|Benvenuto a TwentyTwoMalta! Inserisci il tuo nome:");
+            // richiede il nome utente al client
+            Messaggio messaggioBenvenuto = new Messaggio(TipoMessaggio.BENVENUTO,
+                    "Benvenuto a TwentyTwoMalta! Inserisci il tuo nome:");
+            inviaMessaggio(messaggioBenvenuto);
 
-            // Legge il nome utente dal client
-            String risposta = lettore.readLine();
-            
-            // Estrai il nome dalla risposta
-            if (risposta.startsWith("NOME|")) {
-                this.nomeClient = risposta.substring(5);
-            } else {
-                this.nomeClient = risposta;
-            }
-
-            // Invia informazioni iniziali al client
-            inviaMessaggio("INFO|Connesso come: " + nomeClient);
-
-            // Invia informazioni sui comandi disponibili
-            inviaMessaggio("COMANDI|Comandi disponibili:\n" +
-                "\n1) Visualizza i drink disponibili\n" +
-                "2) Ordina un drink\n" +
-                "3) Invia un messaggio\n" +
-                "0) Esci dal locale");
-
-
-            // In parole povere avvisa che c'è gente nuova collegata
-            server.inoltraMessaggioChat(
-                "NOTIFICA|" + nomeClient + " è entrato nel locale!",
-                this
-            );
         } catch (IOException e) {
             System.err.println("Errore durante l'inizializzazione del client: " + e.getMessage());
             attivo = false;
         }
     }
 
+    // avvia il thread per la gestione del client
     @Override
     public void run() {
         try {
-            String linea;
-            // Ciclo principale per i messaggi dei clienti
-            while (attivo && (linea = lettore.readLine()) != null) {
-                elaboraMessaggio(linea);
+            String jsonMessaggio;
+
+            // ciclo principale per i messaggi dei clienti
+            while (attivo && (jsonMessaggio = lettore.readLine()) != null) {
+                elaboraMessaggioJSON(jsonMessaggio);
             }
         } catch (IOException e) {
-            System.err.println("Errore di comunicazione con il client " + nomeClient + ": " + e.getMessage());
+            if (nomeClient != null) {
+                System.err.println("Errore di comunicazione con il client " + nomeClient + ": " + e.getMessage());
+            } else {
+                System.err.println("Errore di comunicazione con un client: " + e.getMessage());
+            }
         } finally {
             chiudi();
         }
     }
 
-    // Elabora i messaggi ricevuti dal client.
-    private void elaboraMessaggio(String messaggio) {
-        // Supporto per messaggi
-        String comando;
-        String contenuto = "";
-        
-        // Estrai comando e contenuto
-        if (messaggio.contains("|")) {
-            String[] parti = messaggio.split("\\|", 2);
-            comando = parti[0];
-            if (parti.length > 1) {
-                contenuto = parti[1];
-            }
-        } else {
-            comando = messaggio;
-        }
+    // elabora il messaggio JSON ricevuto dal client
+    private void elaboraMessaggioJSON(String jsonMessaggio) {
+        try {
+            // deserializza il messaggio JSON
+            Messaggio messaggio = JsonUtil.fromJson(jsonMessaggio, Messaggio.class);
 
-        // Elabora il comando ricevuto con switch-case
-        switch (comando) {
-            case "ORDINA":
-                elaboraOrdine(contenuto);
-                break;
-            case "CHAT":
-                elaboraChat(contenuto);
-                break;
-            case "LISTA":
-                inviaListaDrink();
-                break;
-            case "ESCI":
-                disconnetti();
-                break;
-            default:
-                inviaErrore("Comando non riconosciuto. Usa il menu numerico da 0 a 3.");
+            if (messaggio == null) {
+                inviaErrore("Formato messaggio non valido");
+                return;
+            }
+
+            // elabora il messaggio in base al tipo (solo dopo che lo ha deserializzato)
+            switch (messaggio.getTipo()) {
+                case NOME:
+                    registraNomeUtente(messaggio.getContenuto());
+                    break;
+                case ORDINA:
+                    elaboraOrdine(messaggio.getContenuto());
+                    break;
+                case CHAT:
+                    elaboraChat(messaggio);
+                    break;
+                case LISTA:
+                    inviaListaDrink();
+                    break;
+                case ESCI:
+                    disconnetti();
+                    break;
+                default:
+                    inviaErrore("Comando non riconosciuto. Usa il menu numerico da 0 a 3.");
+            }
+        } catch (Exception e) {
+            inviaErrore("Errore nell'elaborazione del messaggio: " + e.getMessage());
         }
     }
 
-    // Elabora un ordine di drink.
+    // registra il nome utente e invia messaggi di benvenuto
+    private void registraNomeUtente(String nome) {
+        this.nomeClient = nome;
+
+        inviaMessaggio(new Messaggio(TipoMessaggio.INFO, "Connesso come: " + nomeClient));
+
+        // invia i comandi disponibili
+        String comandiInfo = "Comandi disponibili:\n" +
+                "\n1) Visualizza i drink disponibili\n" +
+                "2) Ordina un drink\n" +
+                "3) Invia un messaggio\n" +
+                "0) Esci dal locale";
+        inviaMessaggio(new Messaggio(TipoMessaggio.COMANDI, comandiInfo));
+
+        // se qualcuno si collega, notifica agli altri client
+        Messaggio notificaNuovoUtente = new Messaggio(
+                TipoMessaggio.NOTIFICA,
+                nomeClient + " è entrato nel locale!"
+        );
+        server.inoltraMessaggioChat(notificaNuovoUtente, this);
+    }
+
+    // elabora l'ordine del drink
     private void elaboraOrdine(String input) {
         if (input != null && !input.isEmpty()) {
-            // Variabile finale per il nome del drink
+            // variabile finale per il nome del drink
             String inputDrink = input.trim();
             String nomeDrinkFinale = null;
 
             try {
-                // Prova a interpretare l'input come numero di drink
+                // controlla se l'input è un numero valido
+                // se è un numero, lo converte in int e verifica se è compreso nell'intervallo dei drink disponibili
+                // se non è un numero, lancia un'eccezione
                 int numeroDrink = Integer.parseInt(inputDrink);
                 if (numeroDrink >= 1 && numeroDrink <= DRINK_DISPONIBILI.length) {
                     nomeDrinkFinale = DRINK_DISPONIBILI[numeroDrink - 1];
@@ -139,29 +152,41 @@ public class GestoreClient implements Runnable {
                     return;
                 }
             } catch (NumberFormatException e) {
-                // Se non è un numero, invia un errore
                 inviaErrore("Inserisci un numero valido di drink (1-" + DRINK_DISPONIBILI.length + ")");
                 return;
             }
 
-            // A questo punto nomeDrinkFinale contiene il nome del drink valido
+            // a questo punto nomeDrinkFinale contiene il nome del drink valido
+            // procede con l'ordine
             if (nomeDrinkFinale != null) {
                 final String drinkDaOrdinare = nomeDrinkFinale;
                 int numeroOrdine = gestoreOrdini.nuovoOrdine(drinkDaOrdinare, nomeClient);
 
-                inviaMessaggio("ORDINE_RICEVUTO|Ordine ricevuto: " + drinkDaOrdinare + " - In preparazione");
+                // crea e invia al client messaggio di conferma
 
-                // Simulazione della preparazione dell'ordine in un thread separato
+                Messaggio messaggioOrdineRicevuto = new Messaggio(
+                        TipoMessaggio.ORDINE_RICEVUTO,
+                        "Ordine ricevuto: " + drinkDaOrdinare + " - In preparazione"
+                );
+                messaggioOrdineRicevuto.setNumeroOrdine(numeroOrdine);
+                inviaMessaggio(messaggioOrdineRicevuto);
+
+                // prepara l'ordine
                 new Thread(() -> {
                     try {
-                        // Tempo di preparazione casuale (10+ secondi)
-                        int tempoPreparazione = 10000 + (int)(Math.random() * 7500);
+                        // Tempo di preparazione random tra 10 e 18 secondi
+                        int tempoPreparazione = 10000 + (int)(Math.random() * 8500);
                         Thread.sleep(tempoPreparazione);
 
                         gestoreOrdini.completaOrdine(numeroOrdine);
 
-                        // Drink fatto
-                        inviaMessaggio("ORDINE_PRONTO|🍹 Ordine pronto: " + drinkDaOrdinare + " - Buona degustazione!");
+                        // crea e invia messaggio di ordine pronto
+                        Messaggio messaggioOrdineProonto = new Messaggio(
+                                TipoMessaggio.ORDINE_PRONTO,
+                                "Ordine pronto: " + drinkDaOrdinare + " "
+                        );
+                        messaggioOrdineProonto.setNumeroOrdine(numeroOrdine);
+                        inviaMessaggio(messaggioOrdineProonto);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
@@ -171,69 +196,116 @@ public class GestoreClient implements Runnable {
             inviaErrore("Specifica il numero del drink da ordinare");
         }
     }
+   // ! CHAT !
 
-    // Elabora un messaggio di chat e lo inoltra agli altri client.
-    private void elaboraChat(String testoChat) {
+    // inoltra il messaggio di chat a tutti gli altri client
+    // e invia una copia al mittente
+
+  // elabora il messaggio di chat
+    private void elaboraChat(Messaggio messaggioChat) {
+        String testoChat = messaggioChat.getContenuto();
         if (testoChat != null && !testoChat.isEmpty()) {
-            String messaggioDaInviare = "CHAT|" + nomeClient + "|" + testoChat;
 
-            // Invia il messaggio a tutti gli altri client
+            // crea il messaggio da inviare
+            Messaggio messaggioDaInviare = new Messaggio(
+                    TipoMessaggio.CHAT,
+                    nomeClient,
+                    testoChat
+            );
+
+            // invia il messaggio a tutti gli altri client
             server.inoltraMessaggioChat(messaggioDaInviare, this);
-            // Invia anche al mittente per conferma
-            // Vedi il tuo stesso messaggio
+
+            // invia anche al mittente
             inviaMessaggio(messaggioDaInviare);
         } else {
+            // se vuoto da errore
             inviaErrore("Messaggio vuoto");
         }
     }
 
-    // Invia la lista dei drink disponibili al client.
+  // invia la lista dei drink disponibili al client
+
     private void inviaListaDrink() {
-        StringBuilder listaFormattata = new StringBuilder("🍹 Drink disponibili a TwentyTwoMalta:\n");
+        StringBuilder listaFormattata = new StringBuilder(" Drink disponibili a TwentyTwoMalta:\n");
         for (int i = 0; i < DRINK_DISPONIBILI.length; i++) {
             listaFormattata.append(i + 1).append(". ").append(DRINK_DISPONIBILI[i]).append("\n");
         }
         listaFormattata.append("\nPer ordinare, seleziona l'opzione 2 e poi inserisci il numero del drink.");
 
-        inviaMessaggio("LISTA_DRINK|" + listaFormattata.toString());
+        Messaggio messaggioListaDrink = new Messaggio(
+                TipoMessaggio.LISTA_DRINK,
+                listaFormattata.toString()
+        );
+        inviaMessaggio(messaggioListaDrink);
     }
 
-    // Gestisce la disconnessione del client.
-    private void disconnetti() {
-        inviaMessaggio("DISCONNESSIONE|Arrivederci! Grazie per aver visitato TwentyTwoMalta.");
+   // disconnette il client
 
-        // Notifica gli altri client della disconnessione
-        server.inoltraMessaggioChat(
-            "NOTIFICA| " + nomeClient + " ha lasciato il locale.",
-            this
+    private void disconnetti() {
+        Messaggio messaggioArrivederci = new Messaggio(
+                TipoMessaggio.DISCONNESSIONE,
+                "Ciao."
         );
-         // Lo disattiva
+        inviaMessaggio(messaggioArrivederci);
+
+        // dice ai cliente che il client si è disconnesso
+        if (nomeClient != null) {
+            Messaggio notificaUscita = new Messaggio(
+                    TipoMessaggio.NOTIFICA,
+                    nomeClient + " ha lasciato il locale."
+            );
+            server.inoltraMessaggioChat(notificaUscita, this);
+        }
+
+
         attivo = false;
     }
 
-    // Invia un messaggio di errore al client.
+    // errore
     private void inviaErrore(String messaggio) {
-        inviaMessaggio("ERRORE|⚠️ " + messaggio);
+        Messaggio messaggioErrore = new Messaggio(
+                TipoMessaggio.ERRORE,
+                " " + messaggio
+        );
+        inviaMessaggio(messaggioErrore);
     }
 
-    // Invia un messaggio al client.
-    public void inviaMessaggio(String messaggio) {
+   // invia un messaggio JSON al client
+
+    public void inviaMessaggio(Messaggio messaggio) {
         if (scrittore != null && attivo) {
-            scrittore.println(messaggio);
+            try {
+                    // converte l'oggetto Messaggio in una stringa JSON utilizzando la classe JsonUtil
+                    String jsonMessaggio = JsonUtil.toJson(messaggio);
+
+                    // rimuove eventuali caratteri di newline (\n) e ritorno carrello (\r) dalla stringa JSON
+                    // questo previene problemi di parsing lato client poiché il protocollo usa readLine()
+                    jsonMessaggio = jsonMessaggio.replace("\n", " ").replace("\r", "");
+
+                    // invia la stringa JSON al client attraverso il PrintWriter,
+                    scrittore.println(jsonMessaggio);
+
+                    // forza lo svuotamento del buffer per assicurarsi che il messaggio venga mandato subito
+                    scrittore.flush();
+            } catch (Exception e) {
+                System.err.println("Errore: " + e.getMessage());
+            }
         }
     }
 
-    // Chiude la connessione con il client.
+    // chiude la connessione con il client
     public void chiudi() {
         attivo = false;
         try {
+            // chiude gli stream di input e output
             if (lettore != null) lettore.close();
             if (scrittore != null) scrittore.close();
             if (socketClient != null && !socketClient.isClosed()) {
                 socketClient.close();
             }
         } catch (IOException e) {
-            System.err.println("Errore durante la chiusura del client: " + e.getMessage());
+            System.err.println("Errore: " + e.getMessage());
         } finally {
             server.rimuoviClient(this);
         }
