@@ -58,9 +58,9 @@ public class ServerLocale {
     }
 
 
-     // invia un messaggio a tutti i client tranne al mittente.
-     // @param messaggio = Il messaggio da inoltrare
-     // @param mittente = Il gestore client che ha inviato il messaggio
+    // invia un messaggio a tutti i client tranne al mittente.
+    // @param messaggio = Il messaggio da inoltrare
+    // @param mittente = Il gestore client che ha inviato il messaggio
 
     public void inoltraMessaggioChat(Messaggio messaggio, GestoreClient mittente) {
         for (GestoreClient client : listaClient) {

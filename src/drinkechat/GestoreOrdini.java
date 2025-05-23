@@ -11,25 +11,27 @@ public class GestoreOrdini {
     // costruttore
     public GestoreOrdini() {
         // inizializzazione Conta a 0
-        this.contatore = 0;
+        this.contatore =0;
     }
 
-    // Incrementa il contatore degli ordini e verifica se è applicabile uno sconto
+    // incrementa il contatore degli ordini e verifica se è applicabile uno sconto
     public boolean incrementaOrdini() {
         contatore++;
-        // Stampa a che ordine siamo ora
+        // stampa a che ordine siamo ora
         System.out.println("Ordine attuale: #" + contatore);
         if (contatore % 10 == 0) {
             System.out.println("Sconto del 20% applicato all'ordine #" + contatore);
-            return true; // Sconto
+            return true; // sconto
         }
-        return false; // No sconto
+        return false; // no sconto
     }
 
-    // Ordine Attuale
-        public void stampaNumeroOrdineAttuale() {
-            System.out.println("Numero ordine attuale: #" + contatore);
-        }
+
+    // ordine Attuale
+    public void stampaNumeroOrdineAttuale() {
+        System.out.println("Numero ordine attuale: #" + contatore);
+    }
+
 
 
     // crea un nuovo ordine nel sistema e restituisce il suo identificativo numerico.
@@ -45,7 +47,7 @@ public class GestoreOrdini {
         return numeroOrdine;
     }
 
-   // segna che ha fatto l'ordine
+    // segna che ha fatto l'ordine
     public void completaOrdine(int numeroOrdine) {
         System.out.println("Ordine completato: #" + numeroOrdine);
     }

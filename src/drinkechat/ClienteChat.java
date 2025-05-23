@@ -82,7 +82,7 @@ public class ClienteChat {
     // l'input dell'utente
     private void gestisciInput() throws IOException {
         System.out.println("\nConnessione a TwentyTwoMalta in corso...");
-        
+
 
         // per dare tempo al server di inviare il messaggio di benvenuto
         try {
@@ -90,21 +90,21 @@ public class ClienteChat {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         // nome utente
         System.out.print("\nInserisci il tuo nome: ");
         nomeUtente = lettoreConsole.readLine();
-        
+
         if (nomeUtente == null || nomeUtente.trim().isEmpty()) {
             System.out.println("Nome utente non valido.");
             // se non mette nulla di base metto anonimo
             nomeUtente = "Anonimo";
         }
-        
+
         // invia il nome al server
         Messaggio messaggio = new Messaggio(TipoMessaggio.NOME, nomeUtente);
         inviaMessaggioJSON(messaggio);
-        
+
         System.out.println("\nRegistrazione utente in corso...");
 
         try {
@@ -112,7 +112,7 @@ public class ClienteChat {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         //menu
         mostraMenu();
 
@@ -170,7 +170,7 @@ public class ClienteChat {
         }
     }
 
-     // invia il messaggio JSON al server
+    // invia il messaggio JSON al server
 
     // Già spiegato in GestoreClient
     private void inviaMessaggioJSON(Messaggio messaggio) {
@@ -199,7 +199,7 @@ public class ClienteChat {
                 if (jsonMessaggio.trim().isEmpty()) {
                     continue;
                 }
-                
+
                 try {
                     // controlla se il messaggio JSON è completo
                     if (!jsonMessaggio.endsWith("}")) {
@@ -217,7 +217,7 @@ public class ClienteChat {
                         }
                         jsonMessaggio = messaggioCompleto.toString();
                     }
-                    
+
                     // deserializza il messaggio JSON
                     Messaggio messaggio = JsonUtil.fromJson(jsonMessaggio, Messaggio.class);
 
@@ -302,9 +302,11 @@ public class ClienteChat {
 
     // chiude il client
     private void chiudi() {
+        // imposta il client come non attivo
         attivo = false;
 
         try {
+            // chiude tutte le risorse di rete e I/O
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
@@ -312,17 +314,18 @@ public class ClienteChat {
             if (scrittoreServer != null) scrittoreServer.close();
             if (lettoreConsole != null) lettoreConsole.close();
 
-            System.out.println("\nConnessione chiusa. Arrivederci!");
+            System.out.println("\nConnessione chiusa.");
         } catch (IOException e) {
-            System.err.println("Errore durante la chiusura del client: " + e.getMessage());
+            // eventuali errori
+            System.err.println("\nErrore durante la chiusura del client: " + e.getMessage());
         }
     }
 
-  // main
+
+    // main
     public static void main(String[] args) {
         // avvia il client
         ClienteChat client = new ClienteChat();
         client.avvia();
     }
 }
-
