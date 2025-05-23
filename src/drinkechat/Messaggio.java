@@ -46,6 +46,12 @@ public class Messaggio {
         this.contenuto = contenuto;
     }
 
+    public Messaggio(TipoMessaggio tipo, String contenuto, int numeroOrdine) {
+        this.tipo = tipo;
+        this.contenuto = contenuto;
+        this.numeroOrdine = numeroOrdine;
+    }
+
     // Getters e Setters
     public TipoMessaggio getTipo() {
         return tipo;

@@ -135,16 +135,10 @@ public class ClienteChat {
                         break;
 
                     case 2:
-                        System.out.print("Inserisci il numero del drink da ordinare: ");
-                        String numeroDrink = lettoreConsole.readLine();
-                        try {
-                            Integer.parseInt(numeroDrink.trim());
-                            Messaggio messaggioOrdine = new Messaggio(TipoMessaggio.ORDINA, numeroDrink.trim());
-                            inviaMessaggioJSON(messaggioOrdine);
-                        } catch (NumberFormatException e) {
-                            System.out.println("\nDevi inserire un numero valido.");
-                            mostraMenu();
-                        }
+                        System.out.print("Inserisci i numeri dei drink da ordinare (separati da virgola): ");
+                        String numeriDrink = lettoreConsole.readLine();
+                        Messaggio messaggioOrdine = new Messaggio(TipoMessaggio.ORDINA, numeriDrink.trim());
+                        inviaMessaggioJSON(messaggioOrdine);
                         break;
 
                     case 3:
@@ -308,11 +302,9 @@ public class ClienteChat {
 
     // chiude il client
     private void chiudi() {
-        // imposta il client come non attivo
         attivo = false;
 
         try {
-            // chiude tutte le risorse di rete e I/O
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
@@ -320,13 +312,11 @@ public class ClienteChat {
             if (scrittoreServer != null) scrittoreServer.close();
             if (lettoreConsole != null) lettoreConsole.close();
 
-            System.out.println("\nConnessione chiusa.");
+            System.out.println("\nConnessione chiusa. Arrivederci!");
         } catch (IOException e) {
-            // eventuali errori
-            System.err.println("\nErrore durante la chiusura del client: " + e.getMessage());
+            System.err.println("Errore durante la chiusura del client: " + e.getMessage());
         }
     }
-
 
   // main
     public static void main(String[] args) {
@@ -335,3 +325,4 @@ public class ClienteChat {
         client.avvia();
     }
 }
+
